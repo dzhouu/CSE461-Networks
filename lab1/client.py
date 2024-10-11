@@ -1,7 +1,11 @@
 import socket
+import sys
 
-IP = socket.gethostbyname('attu5.cs.washington.edu')
-UDP_PORT = 41201
+if len(sys.argv) != 3:
+    sys.exit(1)
+
+IP = socket.gethostbyname(sys.argv[1])
+UDP_PORT = int(sys.argv[2])
 STEP = 1
 ID = 738
 
@@ -13,11 +17,11 @@ def make_header(payload_len, psecret):
     header += ID.to_bytes(2, 'big')
     return header
 
+
+print("Beginning Secret A:")
 a_payload_len = 12
 a_psecret = 0
-
 a_header = make_header(a_payload_len, a_psecret)
-
 stage_a = 'hello world\0'
 stage_a_encoded_message = a_header + bytes(stage_a, 'utf-8')
 
@@ -35,8 +39,8 @@ finally:
     sock_a.close()
 
 
+print("Beginning Secret B:")
 b_header = make_header(b_len + 4, secretA) # packet_id + payload of length len
-
 sock_b = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 sock_b.settimeout(0.5)
 
@@ -70,6 +74,7 @@ try:
 finally:
     sock_b.close()
 
+print("Beginning Secret C:")
 sock_c = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 sock_c.connect((IP, c_port))
 sock_c.settimeout(3)
@@ -89,5 +94,6 @@ try:
 
     c = response[24:28].decode()
     print(num2, len2, secretC, c)
+    print("secretC is", secretC)
 finally:
     sock_c.close()
