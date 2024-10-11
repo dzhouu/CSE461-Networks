@@ -7,7 +7,7 @@ UDP_PORT = 41201
 a_payload_len = 12
 a_psecret = 0
 step = 1
-student_id = 81
+student_id = 738
 
 a_header = bytes()
 a_header += a_payload_len.to_bytes(4, 'big')
@@ -16,13 +16,13 @@ a_header += step.to_bytes(2, 'big')
 a_header += student_id.to_bytes(2, 'big')
 
 stage_a = 'hello world\0'
-stage_a_encoded_message = a_header + stage_a.encode('utf-8', 'strict')
+stage_a_encoded_message = a_header + bytes(stage_a, 'utf-8')
 
-sock_a = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+sock_a = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) # IPV4 and UDP
 sock_a.settimeout(3)
 try:
     sock_a.sendto(stage_a_encoded_message, (UDP_IP, UDP_PORT))
-    response, _ = sock_a.recvfrom(16)
+    response = sock_a.recv(28) # 12 bytes for header, 16 for payload
     b_num = int.from_bytes(response[0:4], 'big')
     b_len = int.from_bytes(response[4:8], 'big')
     b_port = int.from_bytes(response[8:12], 'big')
