@@ -1,5 +1,6 @@
 import socket
 import sys
+from struct import pack, unpack
 
 if len(sys.argv) != 3:
     sys.exit(1)
@@ -68,32 +69,40 @@ try:
 
     sock_b.settimeout(5)
     response = sock_b.recv(20)
-    c_port = int.from_bytes(response[12:16], 'big')
+    tcp_port = int.from_bytes(response[12:16], 'big')
     secretB = int.from_bytes(response[16:20], 'big')
     print("secretB is", secretB)
 finally:
     sock_b.close()
 
 print("Beginning Secret C:")
-sock_c = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-sock_c.connect((IP, c_port))
-sock_c.settimeout(3)
+sock_tcp = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+sock_tcp.connect((IP, tcp_port))
+sock_tcp.settimeout(3)
 
 try:
-    response = sock_c.recv(28)
+    response = sock_tcp.recv(28)
     num2 = int.from_bytes(response[12:16], 'big')
     len2 = int.from_bytes(response[16:20], 'big')
     secretC = int.from_bytes(response[20:24], 'big')
-
-    # check the header values
-    print(int.from_bytes(response[0:4], 'big'))
-    print(int.from_bytes(response[4:8], 'big'))
-    print(int.from_bytes(response[8:10], 'big'))
-    # bug on server side with student ID 
-    print(int.from_bytes(response[10:12], 'big'))
-
-    c = response[24:28].decode()
-    print(num2, len2, secretC, c)
+    c = response[24:25]
+    # print(num2, len2,secretC, c)
     print("secretC is", secretC)
+
+    print("Beginning Secret D:")
+    d_header = make_header(len2, secretC)
+    d_payload = c * len2
+    if len(d_payload) % 4 != 0:
+        d_padding = c * (4 - len(d_payload) % 4)
+        d_payload += d_padding # if not byte aligned add enough bytes for padding
+    d_message = d_header + d_payload
+
+    for i in range(num2):
+        sock_tcp.send(d_message)
+        # print(f"packet {i + 1}")
+    sock_tcp.settimeout(10)
+    response = sock_tcp.recv(16)
+    secretD = int.from_bytes(response[12:16], 'big')
+    print("secretD is", secretD)
 finally:
-    sock_c.close()
+    sock_tcp.close()
