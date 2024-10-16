@@ -16,5 +16,3 @@ To run the script for server side:
 ``` shell  
   ./run_server.py <server_name> <port_number>
 ```
-
-
