@@ -23,6 +23,8 @@ def make_response(num, len, udp_port, secretA):
     response += secretA.to_bytes(4, 'big')
 
     return response
+
+
 """
 Parameters:
 header: must be a 12-byte object
@@ -39,57 +41,62 @@ Returns true if all data in the header matches the expected data, otherwise fals
 """
 def verify_header(header, exp_secret, exp_step, exp_id):
     _, header_secret, header_step, header_id = read_header(header)
+    print(_, header_secret, header_step, header_id)
     return (header_secret == exp_secret and header_step == exp_step and header_id == exp_id)
 
 """
 Parameters:
 data: list of (data, num_bytes) to package into a payload
 Returns:
-payload (bytes): payload 
+payload (bytes): payload that is padded to a 4-byte boundary
 """
 def package_payload(data_list):
     payload = bytes()
     for data, num_bytes in data_list:
         payload += data.to_bytes(num_bytes, 'big')
+    
+    payload += b'\00' * (0 if len(payload) % 4 == 0 else 4 - (len(payload) % 4)) # pad the payload to 4-byte boundary iff not already on the boundary
     return payload
 
 
-def handle_new_connection(socket, student_id):
-    part_a(student_id, socket)
+def handle_new_connection(server, data, client_address, student_id):
+    part_a(server, data, client_address, student_id)
 
-def part_a(student_id, socket):
+
+def part_a(server, data, client_address, student_id):
     # Part a
     try:
-        header = socket.recv(12)
+        # Parse client data
+        header = data[:12]
         if len(header) != 12:
-            print("I think this checks for the first 12 bytes for header?")
+            print("Bad header")
             return
 
-        client_message = "hello world" + "\0"
-        client_message_len = header + len(client_message)
-        # Check for correct header
-        payload_len, secret, step, student_id, payload = read_header(header)
+        payload = data[12:]
 
-        if not verify_header(header, 0, 1, student_id):
+        # Check for correct header
+        if not verify_header(header, 0, 1, student_id): # Client should give psecret 0 and step 1 for it's part A message
             print("failed header check")
             return
-
-        payload = socket.recv(payload_len)
-        if payload.decode('utf-8') != "hello world":
+        
+        # Check for correct payload
+        if payload.decode('utf-8') != "hello world\x00":
             print("bad payload")
             return
 
         # Make random data for part A response
-
         a_num = random.randint(7, 20)
         a_len = random.randint(20, 100)
         a_udp_port = random.randint(10000, 65535)
         secret_a = random.randint(100, 999)
 
-        response_header = make_header(len(client_message_len), 0, 2, student_id)
-        response_payload = make_response(a_num, a_len, a_udp_port, secret_a)
-        socket.settimeout(CLIENT_TIMEOUT)
-        socket.send(response_header + response_payload)
+        # Create response packet
+        response_payload = package_payload([(a_num, 4), (a_len, 4), (a_udp_port, 4), (secret_a, 4)])
+        response_header = make_header(len(response_payload), 0, 2, student_id)
+        
+        # server.settimeout(CLIENT_TIMEOUT)
+        server.sendto(response_header + response_payload, client_address)
+
     except:
         pass
 
@@ -99,24 +106,27 @@ def start_server(server_ip, port, student_id):
     # Starts up a server listening for incoming client connections
     server = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     server.bind((server_ip, port))
-    server.listen(5)
 
-    while True:
-        try:
-            client_socket, client_address = server.accept()
+    try:
+        while True:
+            data, client_address = server.recvfrom(1024)
+            print("received data: ", data)
             try:
                 # If new client tries to connect to us then create a new thread (i have absolutely no idea how this works ngl i just did geeksforgeeks)
                 # TODO: CLOSE THE THREAD WHEN DONE WITH IT
-                thread = threading.Thread(target=handle_new_connection, args=(client_socket, student_id))
+                thread = threading.Thread(target=handle_new_connection, args=(server, data, client_address, student_id))
                 thread.start()
-            finally:
-                client_socket.close()
-        finally:
-            server.close()
+            except Exception as e:
+                print(e)
+    except Exception as e:
+        print(e)
+    finally:
+        server.close()
+
 
 if __name__ == '__main__':
     server_ip = "attu2.cs.washington.edu"
     port = 31415
-    id = 783
+    id = 738
     start_server(server_ip, port, id)
 
