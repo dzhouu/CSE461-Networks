@@ -41,7 +41,6 @@ def verify_header(header, exp_secret, exp_step, exp_id):
     _, header_secret, header_step, header_id = read_header(header)
     return (header_secret == exp_secret and header_step == exp_step and header_id == exp_id)
 
-<<<<<<< Updated upstream
 """
 Parameters:
 data: list of (data, num_bytes) to package into a payload
@@ -56,15 +55,11 @@ def package_payload(data_list):
 
 
 def handle_new_connection(socket, student_id):
-    socket.settimeout(CLIENT_TIMEOUT)    
-    try:
-        # Part a
-        # Check for correct header 
-=======
-def partA(student_id ):
+    part_a(student_id, socket)
+
+def part_a(student_id, socket):
     # Part a
     try:
->>>>>>> Stashed changes
         header = socket.recv(12)
         if len(header) != 12:
             print("I think this checks for the first 12 bytes for header?")
@@ -85,27 +80,19 @@ def partA(student_id ):
             return
 
         # Make random data for part A response
-<<<<<<< Updated upstream
-        a_num, a_len, a_udp_port, secretA = random.randint(7, 20), random.randint(20, 100), random.randint(0, 65535), random.randint(100, 999)
-        
-        response_header = make_header(len(response_payload), 0, 2, student_id)
-        response_payload = package_payload([(a_num, 4), (a_len, 4), (a_udp_port, 4), (secretA, 4)])
-=======
-        a_num, a_len, a_udp_port, secretA = random.randint(7, 20), random.randint(20, 100), random.randint(10000,
-                                                                                                           65535), random.randint(
-            100, 999)
 
-        response_header = make_header(len(response_payload), 0, 2, student_id)
-        response_payload = make_response(a_num, a_len, a_udp_port, secretA)
+        a_num = random.randint(7, 20)
+        a_len = random.randint(20, 100)
+        a_udp_port = random.randint(10000, 65535)
+        secret_a = random.randint(100, 999)
+
+        response_header = make_header(len(client_message_len), 0, 2, student_id)
+        response_payload = make_response(a_num, a_len, a_udp_port, secret_a)
         socket.settimeout(CLIENT_TIMEOUT)
->>>>>>> Stashed changes
         socket.send(response_header + response_payload)
     except:
         pass
 
-
-def handle_new_connection(socket, student_id):
-    partA()
 
 
 def start_server(server_ip, port, student_id):
@@ -133,11 +120,3 @@ if __name__ == '__main__':
     id = 783
     start_server(server_ip, port, id)
 
-<<<<<<< Updated upstream
-# Run this to start the server
-server_ip = "attu2.cs.washington.edu"
-port = 31415
-id = 783
-start_server(server_ip, port, id)
-=======
->>>>>>> Stashed changes
