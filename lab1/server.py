@@ -5,10 +5,6 @@ import threading
 from struct import pack, unpack
 import random
 
-if len(sys.argv) != 3:
-    print("Please provide specified arguments")
-    sys.exit(1)
-
 CLIENT_TIMEOUT = 3
 
 
@@ -31,16 +27,30 @@ def read_header(header):
     student_id = int.from_bytes(header[10:12], 'big')
     return (payload_len, secret, step, student_id)
 
-""
+"""
+Returns true if all data in the header matches the expected data, otherwise false
+"""
 def verify_header(header, exp_secret, exp_step, exp_id):
     _, header_secret, header_step, header_id = read_header(header)
     return (header_secret == exp_secret and header_step == exp_step and header_id == exp_id)
 
+"""
+Parameters:
+data: list of (data, num_bytes) to package into a payload
+Returns:
+payload (bytes): payload 
+"""
+def package_payload(data_list):
+    payload = bytes()
+    for data, num_bytes in data_list:
+        payload += data.to_bytes(num_bytes, 'big')
+    return payload
+
+
 def handle_new_connection(socket, student_id):
-    socket.settimeout(CLIENT_TIMEOUT)
-    
-    # Part a
+    socket.settimeout(CLIENT_TIMEOUT)    
     try:
+        # Part a
         # Check for correct header 
         header = socket.recv(12)
         if len(header) != 12:
@@ -59,10 +69,10 @@ def handle_new_connection(socket, student_id):
             return
 
         # Make random data for part A response
-        a_num, a_len, a_udp_port, secretA = random.randint(7, 20), random.randint(20, 100), random.randint(10000, 65535), random.randint(100, 999)
-
+        a_num, a_len, a_udp_port, secretA = random.randint(7, 20), random.randint(20, 100), random.randint(0, 65535), random.randint(100, 999)
+        
         response_header = make_header(len(response_payload), 0, 2, student_id)
-        response_payload = bytes()
+        response_payload = package_payload([(a_num, 4), (a_len, 4), (a_udp_port, 4), (secretA, 4)])
         socket.send(response_header + response_payload)
 
     except:
@@ -89,7 +99,7 @@ def start_server(server_ip, port, student_id):
             server.close()
 
 
-# Run this to star the server
+# Run this to start the server
 server_ip = "attu2.cs.washington.edu"
 port = 31415
 id = 783
