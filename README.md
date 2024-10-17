@@ -10,9 +10,9 @@ Joshua Jung: `jjung04`
 
 To run the script for client side:
 ``` shell  
-  ./run_client.py <server_name> <port_number>
+  ./run_client.sh <server_name> <port_number>
 ```
 To run the script for server side:
 ``` shell  
-  ./run_server.py <server_name> <port_number>
+  ./run_server.sh <server_name> <port_number>
 ```

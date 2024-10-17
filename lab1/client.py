@@ -3,6 +3,7 @@ import sys
 from struct import pack, unpack
 
 if len(sys.argv) != 3:
+    print("Please provide specified arguments")
     sys.exit(1)
 
 IP = socket.gethostbyname(sys.argv[1])
