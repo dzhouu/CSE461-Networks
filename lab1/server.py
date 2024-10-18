@@ -9,7 +9,6 @@ CLIENT_TIMEOUT = 3
 STUDENT_ID = 738
 SERVER_IP = socket.gethostbyname("attu3.cs.washington.edu")
 
-
 """
 Returns the header given all the data to make the header
 """
@@ -34,7 +33,6 @@ def read_header(header):
     step = int.from_bytes(header[8:10], 'big')
     student_id = int.from_bytes(header[10:12], 'big')
     return (payload_len, secret, step, student_id)
-
 
 """
 Returns:
@@ -190,39 +188,40 @@ def part_d(tcp_port, secret_c, num2, len2, c):
     part_d_server.settimeout(3)
     part_d_server.listen(1)
     expected_payload_len = len2 + (0 if len2 % 4 == 0 else 4 - (len2 % 4))
+    try:
+        while num2 > 0:
+            connection, client_address = part_d_server.accept()
+            response = connection.recv(1024)
 
-    while num2 > 0:
+            # Parse data
+            header = response[:12]
+            if len(header) != 12:
+                print("Bad header")
+                return
+
+            payload = response[12:]
+
+            # Check for correct header
+            if not verify_header(header, secret_c, 1,
+                                 STUDENT_ID):  # Client should give psecret 0 and step 1 for it's part A message
+                print("Failed header check")
+                return
+
+            # Check for correct payload of char c
+            if len(payload) != expected_payload_len or payload[4:].decode('utf-8') != c * (
+                    expected_payload_len):
+                print("Bad payload")
+                return
+
+            num2 -= 1
+
         connection, client_address = part_d_server.accept()
-        response = connection.recv(1024)
-
-        # Parse data
-        header = response[:12]
-        if len(header) != 12:
-            print("Bad header")
-            return
-
-        payload = response[12:]
-
-        # Check for correct header
-        if not verify_header(header, secret_c, 1,
-                             STUDENT_ID):  # Client should give psecret 0 and step 1 for it's part A message
-            print("Failed header check")
-            return
-
-        # Check for correct payload
-        if len(payload) != expected_payload_len or payload[4:].decode('utf-8') != c * (
-                expected_payload_len):
-            print("Bad payload")
-            return
-
-        num2 -= 1
-
-    connection, client_address = part_d_server.accept()
-    secret_d = random.randint(100, 999)
-    response_payload = package_payload([secret_d])
-    response_header = make_header(len(response_payload), 1, STUDENT_ID, secret_c)
-    part_d_server.sendto(response_header + response_payload, client_address)
-    part_d_server.close()
+        secret_d = random.randint(100, 999)
+        response_payload = package_payload([secret_d])
+        response_header = make_header(len(response_payload), 1, STUDENT_ID, secret_c)
+        part_d_server.sendto(response_header + response_payload, client_address)
+    finally:
+        part_d_server.close()
 
 
 def start_server(port):
@@ -235,7 +234,6 @@ def start_server(port):
             data, client_address = server.recvfrom(1024)
             print("received data: ", data)
             try:
-                # If new client tries to connect to us then create a new thread (i have absolutely no idea how this works ngl i just did geeksforgeeks)
                 # TODO: CLOSE THE THREAD WHEN DONE WITH IT
                 thread = threading.Thread(target=handle_new_connection, args=(server, data, client_address))
                 thread.start()
