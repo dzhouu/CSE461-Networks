@@ -1,9 +1,9 @@
-
 import socket
 import sys
 import threading
 from struct import pack, unpack
 import random
+import string
 
 CLIENT_TIMEOUT = 3
 STUDENT_ID = 738
@@ -167,6 +167,28 @@ def part_b(a_num, a_len, a_udp_port, secret_a):
         final_header = make_header(len(final_payload), 1, STUDENT_ID, secret_a)
         part_b_server.sendto(final_header + final_payload, client_address)
         part_b_server.close()
+
+def part_c(tcp_port):
+    part_c_server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    part_c_server.bind((SERVER_IP, tcp_port))
+    part_c_server.settimeout(3)
+
+    if part_c_server.timeout:
+        return
+    try:
+        num2 = random.randint(7, 20)
+        len2 = random.randint(20, 100)
+        secret_c = random.randint(100, 999)
+        string.ascii_letters
+        'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'
+        c = random.choice(string.ascii_letters)
+        response_payload = package_payload([(num2, 4), (len2, 4), (secret_c, 4), (c, 1)])
+        part_c_server.sendto(response_payload, client_address)
+    except:
+        return None
+
+
+
     
 
 def start_server(port):
