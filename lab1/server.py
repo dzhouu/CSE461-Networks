@@ -61,8 +61,10 @@ def package_payload(data_list):
 
 def handle_new_connection(server, data, client_address):
     a_num, a_len, a_udp_port, secret_a = part_a(server, data, client_address)
-    secret_b, b_tcp_port= part_b(a_num, a_len, a_udp_port, secret_a)
-    part_c(b_tcp_port, secret_b)
+    secret_b, tcp_port= part_b(a_num, a_len, a_udp_port, secret_a)
+    num2, len2, secret_c, c = part_c(tcp_port, secret_b)
+    part_d(tcp_port, num2, len2, secret_c, c)
+
 
 def part_a(server, data, client_address):
     print("Part a")
@@ -158,7 +160,7 @@ def part_b(a_num, a_len, a_udp_port, secret_a):
         return ((secret_b, b_tcp_port))
 
 def part_c(tcp_port, secret_b):
-    print("Part c")
+    print("Starting Part C: ")
     part_c_server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     part_c_server.bind((SERVER_IP, tcp_port))
     part_c_server.settimeout(3)
@@ -178,6 +180,50 @@ def part_c(tcp_port, secret_b):
         connection.sendto(response_header + response_payload, client_address)
     finally:
         part_c_server.close()
+        print("closing connection. End Part C")
+    return num2, len2, secret_c, c
+
+def part_d(tcp_port, secret_c, num2, len2, c):
+    print("Starting Part D:")
+    part_d_server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    part_d_server.bind((SERVER_IP, tcp_port))
+    part_d_server.settimeout(3)
+    part_d_server.listen(1)
+    expected_payload_len = len2 + (0 if len2 % 4 == 0 else 4 - (len2 % 4))
+
+    while num2 > 0:
+        connection, client_address = part_d_server.accept()
+        response = connection.recv(1024)
+
+        # Parse data
+        header = response[:12]
+        if len(header) != 12:
+            print("Bad header")
+            return
+
+        payload = response[12:]
+
+        # Check for correct header
+        if not verify_header(header, secret_c, 1,
+                             STUDENT_ID):  # Client should give psecret 0 and step 1 for it's part A message
+            print("Failed header check")
+            return
+
+        # Check for correct payload
+        if len(payload) != expected_payload_len or payload[4:].decode('utf-8') != c * (
+                expected_payload_len):
+            print("Bad payload")
+            return
+
+        num2 -= 1
+
+    connection, client_address = part_d_server.accept()
+    secret_d = random.randint(100, 999)
+    response_payload = package_payload([secret_d])
+    response_header = make_header(len(response_payload), 1, STUDENT_ID, secret_c)
+    part_d_server.sendto(response_header + response_payload, client_address)
+    part_d_server.close()
+
 
 def start_server(port):
     # Starts up a server listening for incoming client connections
