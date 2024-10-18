@@ -7,7 +7,7 @@ import string
 
 CLIENT_TIMEOUT = 3
 STUDENT_ID = 738
-SERVER_IP = "attu2.cs.washington.edu"
+SERVER_IP = socket.gethostbyname("attu3.cs.washington.edu")
 
 
 """
@@ -20,16 +20,6 @@ def make_header(payload_len, step, id, psecret):
     header += step.to_bytes(2, 'big')
     header += id.to_bytes(2, 'big')
     return header
-
-def make_response(num, len, udp_port, secretA): # part A specific, not used atm TODO: delete (if agree)
-    response = bytes()
-    response += num.to_bytes(4, 'big')
-    response += len.to_bytes(4, 'big')
-    response += udp_port.to_bytes(4, 'big')
-    response += secretA.to_bytes(4, 'big')
-
-    return response
-
 
 """
 Parameters:
@@ -69,11 +59,10 @@ def package_payload(data_list):
     payload += b'\00' * (0 if len(payload) % 4 == 0 else 4 - (len(payload) % 4)) # pad the payload to 4-byte boundary iff not already on the boundary
     return payload
 
-
 def handle_new_connection(server, data, client_address):
     a_num, a_len, a_udp_port, secret_a = part_a(server, data, client_address)
-    part_b(a_num, a_len, a_udp_port, secret_a)
-
+    secret_b, b_tcp_port= part_b(a_num, a_len, a_udp_port, secret_a)
+    part_c(b_tcp_port, secret_b)
 
 def part_a(server, data, client_address):
     print("Part a")
@@ -119,7 +108,6 @@ def part_a(server, data, client_address):
         # Excellent software design :)
         return None
     
-
 def part_b(a_num, a_len, a_udp_port, secret_a):
     print("Part b")
 
@@ -167,14 +155,16 @@ def part_b(a_num, a_len, a_udp_port, secret_a):
         final_header = make_header(len(final_payload), 1, STUDENT_ID, secret_a)
         part_b_server.sendto(final_header + final_payload, client_address)
         part_b_server.close()
+        return ((secret_b, b_tcp_port))
 
-def part_c(tcp_port):
+def part_c(tcp_port, secret_b):
+    print("Part c")
     part_c_server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     part_c_server.bind((SERVER_IP, tcp_port))
     part_c_server.settimeout(3)
-
-    if part_c_server.timeout:
-        return
+    part_c_server.listen(1)
+    connection, client_address = part_c_server.accept()
+    print(f"connected to {SERVER_IP}")
     try:
         num2 = random.randint(7, 20)
         len2 = random.randint(20, 100)
@@ -182,20 +172,18 @@ def part_c(tcp_port):
         string.ascii_letters
         'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'
         c = random.choice(string.ascii_letters)
-        response_payload = package_payload([(num2, 4), (len2, 4), (secret_c, 4), (c, 1)])
-        part_c_server.sendto(response_payload, client_address)
-    except:
-        return None
-
-
-
-    
+        response_header = make_header(25, 2, STUDENT_ID, secret_b)
+        response_payload = package_payload([(num2, 4), (len2, 4), (secret_c, 4), (ord(c), 1)])
+        print(num2, len2, secret_c, c)
+        connection.sendto(response_header + response_payload, client_address)
+    finally:
+        part_c_server.close()
 
 def start_server(port):
     # Starts up a server listening for incoming client connections
     server = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     server.bind((SERVER_IP, port))
-
+    
     try:
         while True:
             data, client_address = server.recvfrom(1024)
