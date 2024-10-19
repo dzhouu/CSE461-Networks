@@ -32,7 +32,7 @@ def read_header(header):
     secret = int.from_bytes(header[4:8], 'big')
     step = int.from_bytes(header[8:10], 'big')
     student_id = int.from_bytes(header[10:12], 'big')
-    return (payload_len, secret, step, student_id)
+    return payload_len, secret, step, student_id
 
 """
 Returns:
@@ -40,7 +40,7 @@ true if all data in the header matches the expected data, otherwise false
 """
 def verify_header(header, exp_secret, exp_step, exp_id):
     _, header_secret, header_step, header_id = read_header(header)
-    return (header_secret == exp_secret and header_step == exp_step and header_id == exp_id)
+    return header_secret == exp_secret and header_step == exp_step and header_id == exp_id
 
 """
 Parameters:
@@ -56,13 +56,6 @@ def package_payload(data_list):
     
     payload += b'\00' * (0 if len(payload) % 4 == 0 else 4 - (len(payload) % 4)) # pad the payload to 4-byte boundary iff not already on the boundary
     return payload
-
-def handle_new_connection(server, data, client_address):
-    a_num, a_len, a_udp_port, secret_a = part_a(server, data, client_address)
-    secret_b, tcp_port= part_b(a_num, a_len, a_udp_port, secret_a)
-    num2, len2, secret_c, c = part_c(tcp_port, secret_b)
-    part_d(tcp_port, num2, len2, secret_c, c)
-
 
 def part_a(server, data, client_address):
     print("Part a")
@@ -103,7 +96,7 @@ def part_a(server, data, client_address):
         print("udp port:", a_udp_port)
         print("secret a:", secret_a)
         print()
-        return (a_num, a_len, a_udp_port, secret_a)
+        return a_num, a_len, a_udp_port, secret_a
     except:
         # Excellent software design :)
         return None
@@ -155,7 +148,7 @@ def part_b(a_num, a_len, a_udp_port, secret_a):
         final_header = make_header(len(final_payload), 1, STUDENT_ID, secret_a)
         part_b_server.sendto(final_header + final_payload, client_address)
         part_b_server.close()
-        return ((secret_b, b_tcp_port))
+        return secret_b, b_tcp_port
 
 def part_c(tcp_port, secret_b):
     print("Starting Part C: ")
@@ -222,6 +215,13 @@ def part_d(tcp_port, secret_c, num2, len2, c):
         part_d_server.sendto(response_header + response_payload, client_address)
     finally:
         part_d_server.close()
+        print("closing connection. End Part D")
+
+def handle_new_connection(server, data, client_address):
+    a_num, a_len, a_udp_port, secret_a = part_a(server, data, client_address)
+    secret_b, tcp_port= part_b(a_num, a_len, a_udp_port, secret_a)
+    num2, len2, secret_c, c = part_c(tcp_port, secret_b)
+    part_d(tcp_port, num2, len2, secret_c, c)
 
 
 def start_server(port):
