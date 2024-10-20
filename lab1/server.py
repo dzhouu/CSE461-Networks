@@ -210,9 +210,9 @@ def part_d(tcp_port, secret_c, num2, len2, c):
 
         connection, client_address = part_d_server.accept()
         secret_d = random.randint(100, 999)
-        response_payload = package_payload([secret_d])
+        response_payload = package_payload([(secret_d, 4)])
         response_header = make_header(len(response_payload), 1, STUDENT_ID, secret_c)
-        part_d_server.sendto(response_header + response_payload, client_address)
+        connection.sendto(response_header + response_payload, client_address)
     finally:
         part_d_server.close()
         print("closing connection. End Part D")
