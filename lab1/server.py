@@ -155,11 +155,11 @@ def part_c_and_d(tcp_port, secret_b):
     tcp_server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     tcp_server.bind((SERVER_IP, tcp_port))
     tcp_server.settimeout(3)
-    tcp_server.listen(1)
+    tcp_server.listen(11)
     connection, client_address = tcp_server.accept()
     print(f"connected to {SERVER_IP}")
     try:
-        num2 = random.randint(7, 20)
+        num2 = 10
         len2 = random.randint(20, 100)
         secret_c = random.randint(100, 999)
         string.ascii_letters
@@ -173,8 +173,8 @@ def part_c_and_d(tcp_port, secret_b):
         print("Starting Part D:")
         expected_payload_len = len2 + (0 if len2 % 4 == 0 else 4 - (len2 % 4))
         while num2 > 0:
-            connection, client_address = tcp_server.accept()
-            response = connection.recv(1024)
+            print(f"packet {num2}")
+            response = connection.recv(len(response_header) + expected_payload_len)
 
             # Parse data
             header = response[:12]
@@ -191,18 +191,20 @@ def part_c_and_d(tcp_port, secret_b):
                 return
 
             # Check for correct payload of char c
-            if len(payload) != expected_payload_len or payload[4:].decode('utf-8') != c * (
-                    expected_payload_len):
+            if len(payload) != expected_payload_len:
                 print("Bad payload")
                 return
+            
+            if payload[4:].decode('utf-8') != c * (
+                    expected_payload_len - 4):
+                print("Bad Payload 2")
 
             num2 -= 1
-
-        connection, client_address = tcp_server.accept()
         secret_d = random.randint(100, 999)
         response_payload = package_payload([(secret_d, 4)])
         response_header = make_header(len(response_payload), 1, STUDENT_ID, secret_c)
         connection.sendto(response_header + response_payload, client_address)
+        return secret_c, secret_d
     finally:
         tcp_server.close()
         print("closing connection. End Part C and D")
@@ -210,7 +212,11 @@ def part_c_and_d(tcp_port, secret_b):
 def handle_new_connection(server, data, client_address):
     a_num, a_len, a_udp_port, secret_a = part_a(server, data, client_address)
     secret_b, tcp_port= part_b(a_num, a_len, a_udp_port, secret_a)
-    part_c_and_d(tcp_port, secret_b)
+    secret_c, secret_d = part_c_and_d(tcp_port, secret_b)
+    print(f"secret A is {secret_a}")
+    print(f"secret B is {secret_b}")
+    print(f"secret C is {secret_c}")
+    print(f"secret D is {secret_d}")
 
 
 def start_server(port):
