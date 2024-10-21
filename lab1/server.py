@@ -147,7 +147,6 @@ def part_b(a_num, a_len, a_udp_port, secret_a):
         final_payload = package_payload([(b_tcp_port, 4), (secret_b, 4)])
         final_header = make_header(len(final_payload), 1, STUDENT_ID, secret_a)
         part_b_server.sendto(final_header + final_payload, client_address)
-        part_b_server.close()
         return secret_b, b_tcp_port
 
 def part_c_and_d(tcp_port, secret_b):
@@ -169,6 +168,7 @@ def part_c_and_d(tcp_port, secret_b):
         response_payload = package_payload([(num2, 4), (len2, 4), (secret_c, 4), (ord(c), 1)])
         print(num2, len2, secret_c, c)
         connection.sendto(response_header + response_payload, client_address)
+
 
         print("Starting Part D:")
         expected_payload_len = len2 + (0 if len2 % 4 == 0 else 4 - (len2 % 4))

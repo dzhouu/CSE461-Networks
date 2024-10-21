@@ -31,7 +31,7 @@ sock_a = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) # IPV4 and UDP
 sock_a.settimeout(3)
 try:
     sock_a.sendto(stage_a_encoded_message, (IP, UDP_PORT))
-    response = sock_a.recv(28) # 12 bytes for header, 16 for payload
+    response, addr1 = sock_a.recvfrom(28) # 12 bytes for header, 16 for payload
     b_num = int.from_bytes(response[12:16], 'big')
     b_len = int.from_bytes(response[16:20], 'big')
     b_port = int.from_bytes(response[20:24], 'big')
@@ -59,7 +59,7 @@ try:
         while i not in received:
             sock_b.sendto(current_message, (IP, b_port))
             try:
-                curr_response = sock_b.recv(16)
+                curr_response, addr1 = sock_b.recvfrom(16)
                 acked_packet_id = int.from_bytes(curr_response[12:16], 'big')
                 if acked_packet_id == i:
                     received.add(acked_packet_id)
