@@ -7,7 +7,7 @@ import string
 
 CLIENT_TIMEOUT = 3
 STUDENT_ID = 738
-SERVER_IP = socket.gethostbyname("attu3.cs.washington.edu")
+SERVER_IP = socket.gethostbyname(sys.argv[1])
 
 """
 Returns the header given all the data to make the header
@@ -150,13 +150,13 @@ def part_b(a_num, a_len, a_udp_port, secret_a):
         part_b_server.close()
         return secret_b, b_tcp_port
 
-def part_c(tcp_port, secret_b):
+def part_c_and_d(tcp_port, secret_b):
     print("Starting Part C: ")
-    part_c_server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    part_c_server.bind((SERVER_IP, tcp_port))
-    part_c_server.settimeout(3)
-    part_c_server.listen(1)
-    connection, client_address = part_c_server.accept()
+    tcp_server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    tcp_server.bind((SERVER_IP, tcp_port))
+    tcp_server.settimeout(3)
+    tcp_server.listen(1)
+    connection, client_address = tcp_server.accept()
     print(f"connected to {SERVER_IP}")
     try:
         num2 = random.randint(7, 20)
@@ -169,21 +169,11 @@ def part_c(tcp_port, secret_b):
         response_payload = package_payload([(num2, 4), (len2, 4), (secret_c, 4), (ord(c), 1)])
         print(num2, len2, secret_c, c)
         connection.sendto(response_header + response_payload, client_address)
-    finally:
-        part_c_server.close()
-        print("closing connection. End Part C")
-    return num2, len2, secret_c, c
 
-def part_d(tcp_port, secret_c, num2, len2, c):
-    print("Starting Part D:")
-    part_d_server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    part_d_server.bind((SERVER_IP, tcp_port))
-    part_d_server.settimeout(3)
-    part_d_server.listen(1)
-    expected_payload_len = len2 + (0 if len2 % 4 == 0 else 4 - (len2 % 4))
-    try:
+        print("Starting Part D:")
+        expected_payload_len = len2 + (0 if len2 % 4 == 0 else 4 - (len2 % 4))
         while num2 > 0:
-            connection, client_address = part_d_server.accept()
+            connection, client_address = tcp_server.accept()
             response = connection.recv(1024)
 
             # Parse data
@@ -208,20 +198,19 @@ def part_d(tcp_port, secret_c, num2, len2, c):
 
             num2 -= 1
 
-        connection, client_address = part_d_server.accept()
+        connection, client_address = tcp_server.accept()
         secret_d = random.randint(100, 999)
         response_payload = package_payload([(secret_d, 4)])
         response_header = make_header(len(response_payload), 1, STUDENT_ID, secret_c)
         connection.sendto(response_header + response_payload, client_address)
     finally:
-        part_d_server.close()
-        print("closing connection. End Part D")
+        tcp_server.close()
+        print("closing connection. End Part C and D")
 
 def handle_new_connection(server, data, client_address):
     a_num, a_len, a_udp_port, secret_a = part_a(server, data, client_address)
     secret_b, tcp_port= part_b(a_num, a_len, a_udp_port, secret_a)
-    num2, len2, secret_c, c = part_c(tcp_port, secret_b)
-    part_d(tcp_port, num2, len2, secret_c, c)
+    part_c_and_d(tcp_port, secret_b)
 
 
 def start_server(port):
@@ -246,6 +235,9 @@ def start_server(port):
 
 
 if __name__ == '__main__':
-    port = 31415
+    if len(sys.argv) != 3:
+        print("Please provide specified arguments")
+        sys.exit(1)
+    port = int(sys.argv[2])
     start_server(port)
 
