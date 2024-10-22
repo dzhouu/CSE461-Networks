@@ -147,9 +147,10 @@ def part_b(a_num, a_len, a_udp_port, secret_a):
         final_payload = package_payload([(b_tcp_port, 4), (secret_b, 4)])
         final_header = make_header(len(final_payload), 1, STUDENT_ID, secret_a)
         part_b_server.sendto(final_header + final_payload, client_address)
+        part_b_server.close()
         return secret_b, b_tcp_port
 
-def part_c_and_d(tcp_port, secret_b):
+def part_c(tcp_port, secret_b):
     print("Starting Part C: ")
     tcp_server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     tcp_server.bind((SERVER_IP, tcp_port))
@@ -158,7 +159,7 @@ def part_c_and_d(tcp_port, secret_b):
     connection, client_address = tcp_server.accept()
     print(f"connected to {SERVER_IP}")
     try:
-        num2 = 10
+        num2 = random.randint(7, 20)
         len2 = random.randint(20, 100)
         secret_c = random.randint(100, 999)
         string.ascii_letters
@@ -168,13 +169,18 @@ def part_c_and_d(tcp_port, secret_b):
         response_payload = package_payload([(num2, 4), (len2, 4), (secret_c, 4), (ord(c), 1)])
         print(num2, len2, secret_c, c)
         connection.sendto(response_header + response_payload, client_address)
+        return num2, len2, c, secret_c, tcp_server, connection, client_address
+    finally:
+        tcp_server.close()
+        print("closing connection. End Part C and D")
 
-
+def part_d(num2, len2, c, secret_c, tcp_server, connection, client_address):
+    try:
         print("Starting Part D:")
         expected_payload_len = len2 + (0 if len2 % 4 == 0 else 4 - (len2 % 4))
         while num2 > 0:
             print(f"packet {num2}")
-            response = connection.recv(len(response_header) + expected_payload_len)
+            response = connection.recv(12 + expected_payload_len)
 
             # Parse data
             header = response[:12]
@@ -204,15 +210,17 @@ def part_c_and_d(tcp_port, secret_b):
         response_payload = package_payload([(secret_d, 4)])
         response_header = make_header(len(response_payload), 1, STUDENT_ID, secret_c)
         connection.sendto(response_header + response_payload, client_address)
-        return secret_c, secret_d
+        return secret_d
     finally:
         tcp_server.close()
-        print("closing connection. End Part C and D")
+        print("closing connection. End Part D")
+
 
 def handle_new_connection(server, data, client_address):
     a_num, a_len, a_udp_port, secret_a = part_a(server, data, client_address)
     secret_b, tcp_port= part_b(a_num, a_len, a_udp_port, secret_a)
-    secret_c, secret_d = part_c_and_d(tcp_port, secret_b)
+    num2, len2, c, secret_c, tcp_server, connection, client_address = part_c(tcp_port, secret_b)
+    secret_d = part_d(num2, len2, c, secret_c, tcp_server, connection, client_address)
     print(f"secret A is {secret_a}")
     print(f"secret B is {secret_b}")
     print(f"secret C is {secret_c}")
@@ -223,7 +231,7 @@ def start_server(port):
     # Starts up a server listening for incoming client connections
     server = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     server.bind((SERVER_IP, port))
-    
+
     try:
         while True:
             data, client_address = server.recvfrom(1024)
@@ -234,11 +242,12 @@ def start_server(port):
                 thread.start()
             except Exception as e:
                 print(e)
+    except KeyboardInterrupt:
+        print("\n Ctrl + C, Exiting")
     except Exception as e:
         print(e)
     finally:
         server.close()
-
 
 if __name__ == '__main__':
     if len(sys.argv) != 3:

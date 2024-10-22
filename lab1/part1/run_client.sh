@@ -4,4 +4,4 @@ if [ "$#" -ne 2 ]; then
     exit 1
 fi
 echo "Running client.py with server: $1 and port: $2"
-python3 $dname/lab1/client.py $1 $2
+python3 client.py $1 $2
