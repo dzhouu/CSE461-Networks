@@ -109,7 +109,13 @@ def part_a(server: socket, data, client_address):
 def part_b(a_num, a_len, a_udp_port, secret_a):
     # Create a new server to listen for the client's part b response
     part_b_server = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    part_b_server.bind((SERVER_IP, a_udp_port))
+    try:
+        part_b_server.bind((SERVER_IP, a_udp_port))
+    except:
+        print(f"Port {port} is already in use")
+        part_b_server.close()
+        return -1 -1
+
     part_b_server.settimeout(CLIENT_TIMEOUT)
     expected_payload_len = 4 + a_len + (0 if a_len % 4 == 0 else 4 - (a_len % 4))
     b_tcp_port = random.randint(1024, 49151)
@@ -159,7 +165,13 @@ def part_b(a_num, a_len, a_udp_port, secret_a):
 
 def part_c(tcp_port, secret_b):
     tcp_server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    tcp_server.bind((SERVER_IP, tcp_port))
+    try:
+        tcp_server.bind((SERVER_IP, tcp_port))
+    except:
+        print(f"Port {port} is already in use")
+        tcp_server.close()
+        return
+        
     tcp_server.settimeout(CLIENT_TIMEOUT)
     tcp_server.listen(1 + 20)
     connection, client_address = tcp_server.accept()
@@ -241,8 +253,14 @@ def handle_new_connection(server, data, client_address):
 
 def start_server(port):
     # Starts up a server listening for incoming client connections
+
     server = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    server.bind((SERVER_IP, port))
+    try:
+        server.bind((SERVER_IP, port))
+    except:
+        print(f"Port {port} is already in use")
+        server.close()
+        return
 
     try:
         while True:
