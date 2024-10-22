@@ -269,7 +269,7 @@ def start_server(port):
         while True:
             data, client_address = server.recvfrom(1024)
             try:
-                thread = threading.Thread(target=handle_new_connection, args=(server, data, client_address))
+                thread = threading.Thread(target=handle_new_connection, args=(server, data, client_address, stop_event))
                 thread.start()
                 threads.append(thread)
             except Exception as e:
