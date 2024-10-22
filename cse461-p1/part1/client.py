@@ -1,6 +1,5 @@
 import socket
 import sys
-from struct import pack, unpack
 
 STEP = 1
 ID = 738
@@ -39,16 +38,16 @@ def part_a():
         num = int.from_bytes(response[12:16], 'big')
         b_len = int.from_bytes(response[16:20], 'big')
         port = int.from_bytes(response[20:24], 'big')
-        secretA = int.from_bytes(response[24:28], 'big')
-        print("secretA is", secretA)
-        return num, b_len, port, secretA
+        secret_a = int.from_bytes(response[24:28], 'big')
+        print("Secret A is", secret_a)
+        return num, b_len, port, secret_a
     finally:
         sock_a.close()
 
 
-def part_b(num, b_len, udp_port, secretA):
+def part_b(num, b_len, udp_port, secret_a):
     print("Beginning Secret B:")
-    b_header = make_header(b_len + 4, secretA) # packet_id + payload of length len
+    b_header = make_header(b_len + 4, secret_a) # packet_id + payload of length len
     sock_b = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     sock_b.settimeout(0.5)
 
@@ -78,8 +77,8 @@ def part_b(num, b_len, udp_port, secretA):
         sock_b.settimeout(5)
         response = sock_b.recv(20)
         tcp_port = int.from_bytes(response[12:16], 'big')
-        secretB = int.from_bytes(response[16:20], 'big')
-        print("secretB is", secretB)
+        secret_b = int.from_bytes(response[16:20], 'big')
+        print("Secret B is", secret_b)
         return tcp_port
     finally:
         sock_b.close()
@@ -95,18 +94,18 @@ def part_c(tcp_port):
         response = sock_tcp.recv(28)
         num_2 = int.from_bytes(response[12:16], 'big')
         len_2 = int.from_bytes(response[16:20], 'big')
-        secretC = int.from_bytes(response[20:24], 'big')
+        secret_c = int.from_bytes(response[20:24], 'big')
         c = response[24:25]
-        # print(num_2, len_2,secretC, c)
-        print("secretC is", secretC)
-        return num_2, len_2, c, secretC, sock_tcp
+        # print(num_2, len_2,secret_c, c)
+        print("secret C is", secret_c)
+        return num_2, len_2, c, secret_c, sock_tcp
     except:
         None
 
-def part_d(num_2, len_2, c, secretC, sock_tcp):
+def part_d(num_2, len_2, c, secret_c, sock_tcp):
     try:
         print("Beginning Secret D:")
-        d_header = make_header(len_2, secretC)
+        d_header = make_header(len_2, secret_c)
         d_payload = c * len_2
         if len(d_payload) % 4 != 0:
             d_padding = c * (4 - len(d_payload) % 4)
@@ -118,8 +117,8 @@ def part_d(num_2, len_2, c, secretC, sock_tcp):
             # print(f"packet {i + 1}")
         sock_tcp.settimeout(10)
         response = sock_tcp.recv(16)
-        secretD = int.from_bytes(response[12:16], 'big')
-        print("secretD is", secretD)
+        secret_d = int.from_bytes(response[12:16], 'big')
+        print("Secret D is", secret_d)
     finally:
         sock_tcp.close()
 
@@ -130,8 +129,8 @@ if __name__ == '__main__':
         sys.exit(1)
     IP = socket.gethostbyname(sys.argv[1])
     UDP_PORT = int(sys.argv[2])
-    num, b_len, port, secretA = part_a()
-    tcp_port = part_b(num, b_len, port, secretA)
-    num_2, len_2, c, secretC, sock_tcp = part_c(tcp_port)
-    part_d(num_2, len_2, c, secretC, sock_tcp)
+    num, b_len, port, secret_a = part_a()
+    tcp_port = part_b(num, b_len, port, secret_a)
+    num_2, len_2, c, secret_c, sock_tcp = part_c(tcp_port)
+    part_d(num_2, len_2, c, secret_c, sock_tcp)
     
