@@ -130,9 +130,6 @@ def part_b(a_num, a_len, a_udp_port, secret_a):
             payload = b_data[12:]
 
             # Check for correct header
-            print(a_len)
-            print(secret_a)
-            print(student_id)
             if not verify_header(header, a_len + 4, secret_a, 1, student_id):
                 print("Failed header check")
                 part_b_server.close()
