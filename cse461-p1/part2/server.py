@@ -132,7 +132,6 @@ def part_b(a_num, a_len, a_udp_port, secret_a, part_b_server):
             header = b_data[:12]
             if len(header) != 12:
                 print("Bad header")
-                part_b_server.close()
                 raise ValueError
 
             payload = b_data[12:]
@@ -140,7 +139,6 @@ def part_b(a_num, a_len, a_udp_port, secret_a, part_b_server):
             # Check for correct header
             if not verify_header(header, a_len + 4, secret_a, 1, student_id):
                 print("Failed header check")
-                part_b_server.close()
                 raise ValueError
             
             packet_id = payload[:4]
@@ -148,7 +146,6 @@ def part_b(a_num, a_len, a_udp_port, secret_a, part_b_server):
             # Check for correct payload
             if len(payload) != expected_payload_len or payload[4:].decode('utf-8') != "\x00" * (expected_payload_len - 4):
                 print("Bad payload")
-                part_b_server.close()
                 raise ValueError
             
             response_payload = package_payload([(int.from_bytes(packet_id, 'big'), 4)])
