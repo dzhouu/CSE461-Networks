@@ -118,10 +118,8 @@ def part_a(server: socket, data, client_address):
         print("len:", a_len)
         print("udp port:", a_udp_port)
         print("secret a:", secret_a)
-        print()
         return a_num, a_len, a_udp_port, secret_a
     except ValueError:
-        # Excellent software design :)
         return -1, -1, -1, -1
     
 def part_b(a_num, a_len, a_udp_port, secret_a):
@@ -135,8 +133,8 @@ def part_b(a_num, a_len, a_udp_port, secret_a):
     b_tcp_port = random.randint(1024, 49151)
     secret_b = random.randint(100,999)
     try:
-        for _ in range(a_num):
-            print("packet ", _ + 1)
+        for packet_num in range(a_num):
+            print("packet ", packet_num + 1)
             b_data, client_address = part_b_server.recvfrom(1024)
 
             # Parse data
@@ -144,6 +142,7 @@ def part_b(a_num, a_len, a_udp_port, secret_a):
             print_header(header)
             if len(header) != 12:
                 print("Bad header")
+                part_b_server.close()
                 raise ValueError
 
             payload = b_data[12:]
@@ -155,6 +154,7 @@ def part_b(a_num, a_len, a_udp_port, secret_a):
             print(student_id)
             if not verify_header(header, a_len + 4, secret_a, 1, student_id):
                 print("Failed header check")
+                part_b_server.close()
                 raise ValueError
             
             packet_id = payload[:4]
@@ -162,6 +162,7 @@ def part_b(a_num, a_len, a_udp_port, secret_a):
             # Check for correct payload
             if len(payload) != expected_payload_len or payload[4:].decode('utf-8') != "\x00" * (expected_payload_len - 4):
                 print("Bad payload")
+                part_b_server.close()
                 raise ValueError
             
             response_payload = package_payload([(int.from_bytes(packet_id, 'big'), 4)])
@@ -174,6 +175,7 @@ def part_b(a_num, a_len, a_udp_port, secret_a):
         print("sending final packet")
         print("tcp port:", b_tcp_port)
         print("secret b:", secret_b)
+        # Create the payload header and payload that will be sent by the server
         final_payload = package_payload([(b_tcp_port, 4), (secret_b, 4)])
         final_header = make_header(len(final_payload), 1, student_id, secret_a)
         part_b_server.sendto(final_header + final_payload, client_address)
@@ -223,11 +225,13 @@ def part_d(num2, len2, c, secret_c, tcp_server, connection, client_address):
             if not verify_header(header, len2, secret_c, 1,
                                  student_id):
                 print("Failed header check")
+                tcp_server.close()
                 return
 
             # Check for correct payload of char c
             if len(payload) != expected_payload_len:
                 print("Bad payload: Bad payload length")
+                tcp_server.close()
                 return
 
             # Need to Check each entry in the pay-load
@@ -235,6 +239,7 @@ def part_d(num2, len2, c, secret_c, tcp_server, connection, client_address):
             for char in range(len2):
                 if chr(payload[char]) != c:
                     print(f"Bad payload: Unexpected char:", {chr(payload[char])})
+                    tcp_server.close()
                     return
 
             num2 -= 1
@@ -275,12 +280,12 @@ def start_server(port):
             data, client_address = server.recvfrom(1024)
             print("received data: ", data)
             try:
-                # TODO: CLOSE THE THREAD WHEN DONE WITH IT
                 thread = threading.Thread(target=handle_new_connection, args=(server, data, client_address))
                 thread.start()
             except Exception as e:
                 print(e)
     except KeyboardInterrupt:
+        server.close()
         print("\n Ctrl + C, Exiting")
     except Exception as e:
         print(e)
