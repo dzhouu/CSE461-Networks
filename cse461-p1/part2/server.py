@@ -171,7 +171,7 @@ def part_c(tcp_port, secret_b):
         print(f"Port {port} is already in use")
         tcp_server.close()
         return
-        
+
     tcp_server.settimeout(CLIENT_TIMEOUT)
     tcp_server.listen(1 + 20)
     connection, client_address = tcp_server.accept()
@@ -234,9 +234,11 @@ def part_d(num2, len2, c, secret_c, tcp_server, connection, client_address):
         tcp_server.close()
 
 
-def handle_new_connection(server, data, client_address):
+def handle_new_connection(server, data, client_address, stop_event):
     global student_id
     student_id = int.from_bytes(data[10:12], 'big')
+    if stop_event.is_set():
+        return
     a_num, a_len, a_udp_port, secret_a = part_a(server, data, client_address)
     if check_secret(secret_a):
         return
@@ -253,7 +255,8 @@ def handle_new_connection(server, data, client_address):
 
 def start_server(port):
     # Starts up a server listening for incoming client connections
-
+    stop_event = threading.Event()
+    threads = []
     server = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     try:
         server.bind((SERVER_IP, port))
@@ -268,14 +271,17 @@ def start_server(port):
             try:
                 thread = threading.Thread(target=handle_new_connection, args=(server, data, client_address))
                 thread.start()
+                threads.append(thread)
             except Exception as e:
                 print(e)
+
     except KeyboardInterrupt:
         server.close()
         print("\n Ctrl + C, Exiting")
-    except Exception as e:
-        print(e)
     finally:
+        stop_event.set()  # Signal all threads to stop
+        for thread in threads:
+            thread.join()  # Wait for all threads to finish
         server.close()
 
 if __name__ == '__main__':
