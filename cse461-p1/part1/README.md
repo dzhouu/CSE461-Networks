@@ -7,13 +7,14 @@ Denny Zhou: `Dzhou11`
 Jason Hua: `jhua04`  
 Joshua Jung: `jjung04`  
 
-To run the script for client side:
+To run the script for Client Side:
 ``` shell  
   ./run_client.sh <server_name> <port_number>
 ```
-
-Secret A: 75
-Secret B: 36
-Secret C: 227
+Secret Codes Obtained:
+```
+Secret A: 75  
+Secret B: 36  
+Secret C: 227  
 Secret D: 362
 ```

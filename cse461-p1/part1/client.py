@@ -93,27 +93,27 @@ def part_c(tcp_port):
 
     try:
         response = sock_tcp.recv(28)
-        num2 = int.from_bytes(response[12:16], 'big')
-        len2 = int.from_bytes(response[16:20], 'big')
+        num_2 = int.from_bytes(response[12:16], 'big')
+        len_2 = int.from_bytes(response[16:20], 'big')
         secretC = int.from_bytes(response[20:24], 'big')
         c = response[24:25]
-        # print(num2, len2,secretC, c)
+        # print(num_2, len_2,secretC, c)
         print("secretC is", secretC)
-        return num2, len2, c, secretC, sock_tcp
+        return num_2, len_2, c, secretC, sock_tcp
     except:
         None
 
-def part_d(num2, len2, c, secretC, sock_tcp):
+def part_d(num_2, len_2, c, secretC, sock_tcp):
     try:
         print("Beginning Secret D:")
-        d_header = make_header(len2, secretC)
-        d_payload = c * len2
+        d_header = make_header(len_2, secretC)
+        d_payload = c * len_2
         if len(d_payload) % 4 != 0:
             d_padding = c * (4 - len(d_payload) % 4)
             d_payload += d_padding # if not byte aligned add enough bytes for padding
         d_message = d_header + d_payload
 
-        for i in range(num2):
+        for i in range(num_2):
             sock_tcp.send(d_message)
             # print(f"packet {i + 1}")
         sock_tcp.settimeout(10)
@@ -132,6 +132,6 @@ if __name__ == '__main__':
     UDP_PORT = int(sys.argv[2])
     num, b_len, port, secretA = part_a()
     tcp_port = part_b(num, b_len, port, secretA)
-    num2, len2, c, secretC, sock_tcp = part_c(tcp_port)
-    part_d(num2, len2, c, secretC, sock_tcp)
+    num_2, len_2, c, secretC, sock_tcp = part_c(tcp_port)
+    part_d(num_2, len_2, c, secretC, sock_tcp)
     

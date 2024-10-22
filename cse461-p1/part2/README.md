@@ -7,7 +7,7 @@ Denny Zhou: `Dzhou11`
 Jason Hua: `jhua04`  
 Joshua Jung: `jjung04`  
 
-To run the script for client side:
+To run the script for Server Side:
 ``` shell  
   ./run_server.sh <server_name> <port_number>
 ```
