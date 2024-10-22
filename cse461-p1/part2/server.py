@@ -93,8 +93,19 @@ def part_a(server: socket, data, client_address):
         # Make random data for part A response
         a_num = random.randint(7, 20)
         a_len = random.randint(20, 100)
-        a_udp_port = random.randint(10000, 65535)
         secret_a = random.randint(100, 999)
+
+        # Find an open UDP port to connect to for part b
+        found_open_port = False
+        a_udp_port = random.randint(10000, 65535)
+        part_b_server = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        while not found_open_port:
+            a_udp_port = random.randint(10000, 65535)
+            try:
+                part_b_server.bind((SERVER_IP, a_udp_port))
+                found_open_port = True
+            except:
+                print(f"Port {port} is already in use")
 
         # Create response packet
         response_payload = package_payload([(a_num, 4), (a_len, 4), (a_udp_port, 4), (secret_a, 4)])
@@ -102,23 +113,14 @@ def part_a(server: socket, data, client_address):
         
         # server.settimeout(CLIENT_TIMEOUT)
         server.sendto(response_header + response_payload, client_address)
-        return a_num, a_len, a_udp_port, secret_a
+        return a_num, a_len, a_udp_port, secret_a, part_b_server
     except ValueError:
-        return -1, -1, -1, -1
+        return -1, -1, -1, -1, -1
     
-def part_b(a_num, a_len, a_udp_port, secret_a):
+def part_b(a_num, a_len, a_udp_port, secret_a, part_b_server):
     # Create a new server to listen for the client's part b response
-    part_b_server = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    try:
-        part_b_server.bind((SERVER_IP, a_udp_port))
-    except:
-        print(f"Port {port} is already in use")
-        part_b_server.close()
-        return -1 -1
-
     part_b_server.settimeout(CLIENT_TIMEOUT)
     expected_payload_len = 4 + a_len + (0 if a_len % 4 == 0 else 4 - (a_len % 4))
-    b_tcp_port = random.randint(1024, 49151)
     secret_b = random.randint(100,999)
 
     try:
@@ -154,27 +156,34 @@ def part_b(a_num, a_len, a_udp_port, secret_a):
             part_b_server.sendto(response_header + response_payload, client_address)
     except ValueError:
         part_b_server.close()
-        return -1, -1
+        return -1, -1, -1
     else:
+        # Find an open tcp port for part c
+        b_tcp_port = random.randint(1024, 49151)
+
+        found_open_port = False
+        part_c_server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        while not found_open_port:
+            b_tcp_port = random.randint(1024, 49151)
+            try:
+                part_c_server.bind((SERVER_IP, b_tcp_port))
+                found_open_port = True
+            except:
+                print(f"Port {port} is already in use")
+
         # Create the payload header and payload that will be sent by the server
         final_payload = package_payload([(b_tcp_port, 4), (secret_b, 4)])
         final_header = make_header(len(final_payload), 1, student_id, secret_a)
         part_b_server.sendto(final_header + final_payload, client_address)
         part_b_server.close()
-        return secret_b, b_tcp_port
+        return secret_b, b_tcp_port, part_c_server
 
-def part_c(tcp_port, secret_b):
-    tcp_server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    try:
-        tcp_server.bind((SERVER_IP, tcp_port))
-    except:
-        print(f"Port {port} is already in use")
-        tcp_server.close()
-        return
-
+def part_c(tcp_port, secret_b, tcp_server):
+    # Listen for client connection
     tcp_server.settimeout(CLIENT_TIMEOUT)
     tcp_server.listen(1 + 20)
     connection, client_address = tcp_server.accept()
+
     try:
         num2 = random.randint(7, 20)
         len2 = random.randint(20, 100)
@@ -187,7 +196,8 @@ def part_c(tcp_port, secret_b):
         connection.sendto(response_header + response_payload, client_address)
         return num2, len2, c, secret_c, tcp_server, connection, client_address
     except:
-        None
+        tcp_server.close()
+        return -1, -1, -1, -1 ,-1, -1, -1
 
 def part_d(num2, len2, c, secret_c, tcp_server, connection, client_address):
     try:
@@ -239,13 +249,13 @@ def handle_new_connection(server, data, client_address, stop_event):
     student_id = int.from_bytes(data[10:12], 'big')
     if stop_event.is_set():
         return
-    a_num, a_len, a_udp_port, secret_a = part_a(server, data, client_address)
+    a_num, a_len, a_udp_port, secret_a, part_b_server = part_a(server, data, client_address)
     if check_secret(secret_a):
         return
-    secret_b, tcp_port= part_b(a_num, a_len, a_udp_port, secret_a)
+    secret_b, tcp_port, part_c_server = part_b(a_num, a_len, a_udp_port, secret_a, part_b_server)
     if check_secret(secret_b):
         return
-    num2, len2, c, secret_c, tcp_server, connection, client_address = part_c(tcp_port, secret_b)
+    num2, len2, c, secret_c, tcp_server, connection, client_address = part_c(tcp_port, secret_b, part_c_server)
     secret_d = part_d(num2, len2, c, secret_c, tcp_server, connection, client_address)
     print(f"secret A is {secret_a}")
     print(f"secret B is {secret_b}")
@@ -279,6 +289,7 @@ def start_server(port):
         server.close()
         print("\n Ctrl + C, Exiting")
     finally:
+        print("Closing all threads")
         stop_event.set()  # Signal all threads to stop
         for thread in threads:
             thread.join()  # Wait for all threads to finish
