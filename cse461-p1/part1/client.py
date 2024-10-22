@@ -23,7 +23,7 @@ def print_header(header):
     print("id", student_id)
 
 def part_a():
-    print("Beginning Secret A:")
+    # print("Beginning Secret A:")
     a_payload_len = 12
     a_psecret = 0
     a_header = make_header(a_payload_len, a_psecret)
@@ -39,14 +39,14 @@ def part_a():
         b_len = int.from_bytes(response[16:20], 'big')
         port = int.from_bytes(response[20:24], 'big')
         secret_a = int.from_bytes(response[24:28], 'big')
-        print("Secret A is", secret_a)
+        print("A:", secret_a)
         return num, b_len, port, secret_a
     finally:
         sock_a.close()
 
 
 def part_b(num, b_len, udp_port, secret_a):
-    print("Beginning Secret B:")
+    # print("Beginning Secret B:")
     b_header = make_header(b_len + 4, secret_a) # packet_id + payload of length len
     sock_b = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     sock_b.settimeout(0.5)
@@ -57,10 +57,10 @@ def part_b(num, b_len, udp_port, secret_a):
         payload.extend(padding) # if not byte aligned add enough bytes for padding
 
     received = set()
-    print_header(b_header)
+    # print_header(b_header)
     try:
         for i in range(num):
-            print("packet ", i + 1)
+            # print("packet ", i + 1)
             current_message = b_header + i.to_bytes(4,'big') + payload
             while i not in received:
                 sock_b.sendto(current_message, (IP, udp_port))
@@ -73,19 +73,19 @@ def part_b(num, b_len, udp_port, secret_a):
                 except socket.timeout:
                     # print("Timed out on packet", i , " trying again")
                     continue
-        print("getting final payload")
+        # print("getting final payload")
         sock_b.settimeout(5)
         response = sock_b.recv(20)
         tcp_port = int.from_bytes(response[12:16], 'big')
         secret_b = int.from_bytes(response[16:20], 'big')
-        print("Secret B is", secret_b)
+        print("B:", secret_b)
         return tcp_port
     finally:
         sock_b.close()
 
 
 def part_c(tcp_port):
-    print("Beginning Secret C:")
+    # print("Beginning Secret C:")
     sock_tcp = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock_tcp.connect((IP, tcp_port))
     sock_tcp.settimeout(3)
@@ -97,14 +97,14 @@ def part_c(tcp_port):
         secret_c = int.from_bytes(response[20:24], 'big')
         c = response[24:25]
         # print(num_2, len_2,secret_c, c)
-        print("secret C is", secret_c)
+        print("C:", secret_c)
         return num_2, len_2, c, secret_c, sock_tcp
     except:
         None
 
 def part_d(num_2, len_2, c, secret_c, sock_tcp):
     try:
-        print("Beginning Secret D:")
+        # print("Beginning Secret D:")
         d_header = make_header(len_2, secret_c)
         d_payload = c * len_2
         if len(d_payload) % 4 != 0:
@@ -118,7 +118,7 @@ def part_d(num_2, len_2, c, secret_c, sock_tcp):
         sock_tcp.settimeout(10)
         response = sock_tcp.recv(16)
         secret_d = int.from_bytes(response[12:16], 'big')
-        print("Secret D is", secret_d)
+        print("D:", secret_d)
     finally:
         sock_tcp.close()
 
