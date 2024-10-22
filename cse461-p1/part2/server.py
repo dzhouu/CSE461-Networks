@@ -227,12 +227,15 @@ def part_d(num2, len2, c, secret_c, tcp_server, connection, client_address):
 
             # Check for correct payload of char c
             if len(payload) != expected_payload_len:
-                print("Bad payload")
+                print("Bad payload: Bad payload length")
                 return
-            
-            if payload[4:].decode('utf-8') != c * (
-                    expected_payload_len - 4):
-                print("Bad Payload 2")
+
+            # Need to Check each entry in the pay-load
+            # the pay-load should be in Unicode of char c from ord() in client side
+            for char in range(len2):
+                if chr(payload[char]) != c:
+                    print(f"Bad payload: Unexpected char:", {chr(payload[char])})
+                    return
 
             num2 -= 1
         secret_d = random.randint(100, 999)
