@@ -117,7 +117,7 @@ def part_a(server: socket, data, client_address):
     except ValueError:
         return -1, -1, -1, -1, -1
     
-def part_b(a_num, a_len, secret_a, part_b_server):
+def part_b(a_num, a_len, a_udp_port, secret_a, part_b_server):
     # Create a new server to listen for the client's part b response
     part_b_server.settimeout(CLIENT_TIMEOUT)
     expected_payload_len = 4 + a_len + (0 if a_len % 4 == 0 else 4 - (a_len % 4))
@@ -175,7 +175,7 @@ def part_b(a_num, a_len, secret_a, part_b_server):
         part_b_server.close()
         return secret_b, b_tcp_port, part_c_server
 
-def part_c(secret_b, tcp_server):
+def part_c(tcp_port, secret_b, tcp_server):
     # Listen for client connection
     tcp_server.settimeout(CLIENT_TIMEOUT)
     tcp_server.listen(1 + 20)
