@@ -16,3 +16,6 @@ To run the script for server side:
 ``` shell  
   ./run_server.sh <server_name> <port_number>
 ```
+
+## Project 2: Link and Network with Software Defined Networking
+`Python 3.12`  
